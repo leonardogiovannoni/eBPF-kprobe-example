@@ -3,8 +3,8 @@ use crate::common::data::Data;
 use std::ffi::CStr;
 
 use anyhow::anyhow;
-use aya::{// 
-    include_bytes_aligned, maps::AsyncPerfEventArray, programs::KProbe, util::online_cpus, Ebpf,
+use aya::{
+    include_bytes_aligned, maps::AsyncPerfEventArray, programs::{FEntry, KProbe}, util::online_cpus, Bpf, Btf,
 };
 // use aya_log::EbpfLogger;
 use bytes::BytesMut;
@@ -17,7 +17,15 @@ struct Opt {
     //#[clap(short, long, default_value = "eth0")]
     //iface: String,
 }
-const BPF_BYTES: &'static [u8] = include_bytes_aligned!(env!("CONFIG_DAT_PATH"));
+//const BPF_FILE: &'static str = "../out.o";
+//const BPF_FILE: &'static str = env!("CONFIG_DAT_PATH");
+macro_rules! BPF_FILE {
+    () => {
+        env!("CONFIG_DAT_PATH")
+        //"../out.o"
+    };
+}
+const BPF_BYTES: &'static [u8] = include_bytes_aligned!(BPF_FILE!());
 /* 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
@@ -33,16 +41,19 @@ async fn main() -> Result<(), anyhow::Error> {
 
     // env_logger::init();
 
-    let mut bpf = Ebpf::load(BPF_BYTES)?;
+    let mut bpf = Bpf::load(BPF_BYTES)?;
 
     // if let Err(e) = EbpfLogger::init(&mut bpf) {
     //     // This can happen if you remove all log statements from your eBPF program.
     //     warn!("failed to initialize eBPF logger: {}", e);
     // }
-
-    let program: &mut KProbe = bpf.program_mut("get_file_name").unwrap().try_into()?;
-    program.load()?;
-    program.attach("vfs_read", 0)?;
+    
+    
+    let program: &mut FEntry = bpf.program_mut("get_file_name").unwrap().try_into()?;
+    let btf = Btf::from_sys_fs()?;
+     
+    program.load("vfs_read", &btf)?;
+    program.attach()?;
     let cpus = online_cpus()?;
     let num_cpus = cpus.len();
     let tmp = bpf.take_map("EVENTS").ok_or(anyhow!("NOPE"))?;

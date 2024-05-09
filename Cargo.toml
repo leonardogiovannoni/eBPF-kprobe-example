@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.81"
-aya = { git = "https://github.com/aya-rs/aya", features = ["async_tokio"] }
-aya-log = { git = "https://github.com/aya-rs/aya" }
+aya = { version = "0.12.0", features = ["async_tokio"] }
+aya-log = "0.2.0"
+#aya = { git = "https://github.com/aya-rs/aya", features = ["async_tokio"] }
+#aya-log = { git = "https://github.com/aya-rs/aya" }
 bytes = "1.5.0"
 chrono = "0.4.35"
 clap = { version = "4.5.3", features = ["derive"] }
